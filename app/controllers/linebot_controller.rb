@@ -38,26 +38,44 @@ class LinebotController < ApplicationController
         'applicationId' => ENV['RAKUTEN_APPID'],
         'hits' => 5,
         'responseType' => 'small',
+        'datumType' => 1,
         'formatVersion' => 2
       }
-      response = http_client.get(url, query)
-      response = JSON.parse(response.body)
+    response = http_client.get(url, query)
+    response = JSON.parse(response.body)
 
-      if response.key?('error')
-        text = "この検索条件に該当する宿泊施設が見つかりませんでした。\n条件を変えて再検索してください。"
-      else
-        text = ''
-        response['hotels'].each do |hotel|
-          text <<
-            hotel[0]['hotelBasicInfo']['hotelName'] + "\n" +
-            hotel[0]['hotelBasicInfo']['hotelInformationUrl'] + "\n" +
-            "\n"
-        end
-      end
-      
-      message = {
+    if response.key?('error')
+      text = "この検索条件に該当する宿泊施設が見つかりませんでした。\n条件を変えて再検索してください。"
+      {
         type: 'text',
         text: text
       }
+    else
+      {
+        type: 'flex',
+        altText: '宿泊検索の結果です。',
+        contents: set_carousel(response['hotels'])
+      }
+    end
+  end
+
+  def set_carousel(hotels)
+    bubbles = []
+    hotels.each do |hotel|
+      bubbles.push set_bubble(hotel[0]['hotelBasicInfo'])
+    end
+    {
+      type: 'carousel',
+      contents: bubbles
+    }
+  end
+
+  def set_bubble(hotel)
+    {
+      type: 'bubble',
+      hero: set_hero(hotel),
+      body: set_body(hotel),
+      footer: set_footer(hotel)
+    }
   end
 end
